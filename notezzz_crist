@@ -1,0 +1,6 @@
+vai sul main di aweare_neuroscience
+
+`python src/awear_neuroscience/pipeline/runner.py --config <config.json path>`
+
+
+

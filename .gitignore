@@ -1,0 +1,12 @@
+# Ignore Python cache
+__pycache__/
+*.py[cod]
+#Ingore OS stuff
+.DS_Store
+# Dear ImGui settings
+imgui.ini
+# GCP / Firebase service account keys (never commit!)
+*firebase-adminsdk-*.json
+*.serviceAccountKey.json
+# or the exact filename:
+awear-test-firebase-adminsdk-zj0ib-1d57826723.json
