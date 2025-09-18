@@ -13,8 +13,7 @@ from sys import argv
 from collections import deque
 import numpy as np
 import taichi as ti
-# (my own file - reads brainwave files and classifies stressed or not)
-#from eeg_filereader import OfflineEEGFeeder, LiveArousalClassifier
+
 
 # =========================
 # Taichi Reaction–Diffusion
@@ -23,7 +22,8 @@ import taichi as ti
 #   GLOBAL VARIABLES 
 #==========================
 
-# (your original classifier)
+# (my own file - reads brainwave files and classifies stressed or not)
+#from eeg_filereader import OfflineEEGFeeder, LiveArousalClassifier
 from eeg_filereader import LiveArousalClassifier, LiveEEGStreamFeeder
 
 # ---------- NEW: Flask ingest server ----------
@@ -35,7 +35,7 @@ ti.init(arch=ti.gpu)
 
 # Params (fields so kernels see updates immediately)
 #Mitosis
-dt = 0.5
+dt = 0.1
 Da = ti.field(dtype=float, shape=())
 Db = ti.field(dtype=float, shape=())
 k  = ti.field(dtype=float, shape=())
@@ -129,8 +129,6 @@ def start_server(app, host: str, port: int):
     return th
 
 # ------- end of Flask --------
-
-
 
 
 def clamp(x, lo, hi): return max(lo, min(hi, x))
@@ -237,7 +235,7 @@ def render_with_shader_kernel(field: ti.template()):
         amb_ext  = deep_red * 0.10  # faint warm ambient
 
         "============ CALM PALETTE ==============="
-        col_calm = ti.Vector([t, t , 0.8 - t])
+        col_calm  = ti.Vector([t, t , 0.8 - t])
         spec_calm = ti.Vector([1.0, 1.0, 1.0]) #white
         amb_calm  = ti.Vector([0.0, 0.0, 0.0])   # no ambient tint
 
@@ -293,7 +291,6 @@ def main():
     if args.user is not None:
         window_title += f" — user {args.user}"
     window = ti.ui.Window(window_title, (n, n), pos = (args.posx, args.posy))
-    window.show_fps = False
     canvas = window.get_canvas()
     gui = window.get_gui()
 
@@ -356,34 +353,34 @@ def main():
         t = now - t0
 
         if state == "CALM":
-            base_f, base_k, base_Da, base_Db = 0.107, 0.056, 1.50, 0.591
+            base_f, base_k, base_Da, base_Db = 0.029, 0.054, 1.050, 0.500
             stress_state[None]  = 0
             stress_target[None] = 0
         elif state == "MOD-STRESS":
-            base_f, base_k, base_Da, base_Db =  0.107, 0.056, 1.50, 0.591
+            base_f, base_k, base_Da, base_Db =  0.029, 0.054, 0.821, 0.500
             stress_state[None]  = 1
             stress_target[None] = 0.33
         elif state == "HIGH-STRESS":
-            base_f, base_k, base_Da, base_Db = 0.024, 0.058, 1.050, 0.28
+            base_f, base_k, base_Da, base_Db = 0.018, 0.056, 1.500, 0.591
             stress_state[None]  = 2
             stress_target[None] = 0.66
         else: #"EXTREME-STRESS"
-            base_f, base_k, base_Da, base_Db = 0.025, 0.058, 1.050, 0.50
+            base_f, base_k, base_Da, base_Db = 0.018, 0.056, 1.500, 0.591
             stress_state[None]  = 3
             stress_target[None] = 1        
 
             # only wobble when we're close to the calm target already
-            close = (abs(f[None] - base_f)  < 0.002 and
+        close = (abs(f[None] - base_f)  < 0.002 and
                     abs(k[None] - base_k)  < 0.002 and
                     abs(Da[None]- base_Da) < 0.02  and
                     abs(Db[None]- base_Db) < 0.02)
 
-            if close:
+        if close:
                 # slow, tiny LFOs
-                base_f  += AMP_F  * np.sin(2*np.pi*FREQ_F  * t)
-                base_k  += AMP_K  * np.sin(2*np.pi*FREQ_K  * t + 1.3)
-                base_Da += AMP_DA * np.sin(2*np.pi*FREQ_DA * t + 2.1)
-                base_Db += AMP_DB * np.sin(2*np.pi*FREQ_DB * t + 0.4)
+            base_f  += AMP_F  * np.sin(2*np.pi*FREQ_F  * t)
+            base_k  += AMP_K  * np.sin(2*np.pi*FREQ_K  * t + 1.3)
+            base_Da += AMP_DA * np.sin(2*np.pi*FREQ_DA * t + 2.1)
+            base_Db += AMP_DB * np.sin(2*np.pi*FREQ_DB * t + 0.4)
         
         # clamp to safe ranges you already expose on sliders
         base_f  = clamp(base_f,  0.002, 0.120)

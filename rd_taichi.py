@@ -32,15 +32,12 @@ Db = ti.field(dtype=float, shape=())
 k = ti.field(dtype=float, shape=())
 f = ti.field(dtype=float, shape=())
 steps = ti.field(dtype=int, shape=())
-Da[None] = 0.755
-Db[None] = 0.5
-k[None] = 0.060
-f[None] = 0.053
+Da[None] = 1.691
+Db[None] = 0.833
+k[None] = 0.064
+f[None] = 0.06
 steps[None] = 100
-# k=.06088   
-# f=.05097
-# k=.05519   
-# f=.01569
+
 
 #Stressed!!
 # Targets the sim will ease TOWARD

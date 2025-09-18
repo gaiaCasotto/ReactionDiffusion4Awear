@@ -52,20 +52,18 @@ FOCUS_ist_dB → instantaneous "focus band ratio" in dB.
 GLOBAL_FOCUS_max_dB, GLOBAL_FOCUS_min_dB → extrema across segment.
 👉 This is likely a composite marker Awear defines for attention / mental workload (probably based on beta/gamma vs alpha/theta). 
 
-
 '''
 
 import argparse
 import time
-import math
-import random
 import sys
 import pandas as pd
 import numpy    as np
 import requests
 import os
+import threading
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing   import List, Tuple
 
 import firebase_admin
@@ -97,66 +95,66 @@ print("available emails ", available_emails)
 email = available_emails[0]
 print("only email: ", email)
 
+def get_past_data(delta_hours):
+    now = datetime.now()
+    time_ranges = [(now - timedelta(hours=delta_hours), now)]
 
-now = datetime.now()
-time_ranges = [(now - timedelta(hours=400), now)]
+    print(f"Querying EEG data for {email} between {time_ranges[0][0]} and {time_ranges[0][1]}")
+    # ----------- Query and process records --------------
+    raw_records = query_eeg_data(
+        firestore_client=firestore_client,
+        collection_name=os.getenv("COLLECTION_NAME"),
+        document_name=email,  # Use selected email instead of env variable
+        subcollection_name=os.getenv("SUB_COLLECTION_NAME"),
+        time_ranges=time_ranges,
+    )
 
-print(f"Querying EEG data for {email} between {time_ranges[0][0]} and {time_ranges[0][1]}")
-# ----------- Query and process records --------------
-raw_records = query_eeg_data(
-    firestore_client=firestore_client,
-    collection_name=os.getenv("COLLECTION_NAME"),
-    document_name=email,  # Use selected email instead of env variable
-    subcollection_name=os.getenv("SUB_COLLECTION_NAME"),
-    time_ranges=time_ranges,
-)
-
-print(f"Retrieved {len(raw_records)} raw records.")
-
-
-compact_df = process_eeg_records(raw_records)
-print(f"compt Processed DataFrame shape: {compact_df.shape}")
-compact_df.head()
-print(compact_df.columns.tolist())
+    print(f"Retrieved {len(raw_records)} raw records.")
 
 
-long_df = process_eeg_records(raw_records, return_long=True)
-print(f"long Processed DataFrame shape: {long_df.shape}, {long_df.shape[0]//256}")
-long_df.head()
-print(long_df.columns.tolist())
-print("XXxxxxxxxxxxx\n" , long_df)
-
-print("compact : ", compact_df['focus_type'].unique())
-print("long : " , long_df['focus_type'].unique())
-
-with pd.option_context('display.max_columns', None):
-    print("first line : \n",long_df.head(1))
+    compact_df = process_eeg_records(raw_records)
+    print(f"compt Processed DataFrame shape: {compact_df.shape}")
+    compact_df.head()
+    print(compact_df.columns.tolist())
 
 
-if not long_df.empty:
-    from awear_neuroscience.utils.plot_utils import plot_eeg_waveform, plot_eeg_waveform_matplotlib
-    
-    visualize = input("\nVisualize waveform? (y/n): ").strip().lower()
-    if visualize in ['y', 'yes']:
-        # Plot one segment
-        #plot_eeg_waveform(long_df, segment_id="seg_0")
-        plot_eeg_waveform_matplotlib(long_df, segment_id="seg_0")
+    long_df = process_eeg_records(raw_records, return_long=True)
+    print(f"long Processed DataFrame shape: {long_df.shape}, {long_df.shape[0]//256}")
+    long_df.head()
+    print(long_df.columns.tolist())
+    print("XXxxxxxxxxxxx\n" , long_df)
+
+    print("compact : ", compact_df['focus_type'].unique())
+    print("long : " , long_df['focus_type'].unique())
+
+    with pd.option_context('display.max_columns', None):
+        print("first line : \n",long_df.head(1))
+
+    ''' ---------- to plot waveform segment ------------
+    if not long_df.empty:
+        from awear_neuroscience.utils.plot_utils import plot_eeg_waveform, plot_eeg_waveform_matplotlib
+        
+        visualize = input("\nVisualize waveform? (y/n): ").strip().lower()
+        if visualize in ['y', 'yes']:
+            # Plot one segment
+            #plot_eeg_waveform(long_df, segment_id="seg_0")
+            plot_eeg_waveform_matplotlib(long_df, segment_id="seg_0")
+        else:
+            print("Skipping visualization.")
     else:
-        print("Skipping visualization.")
-else:
-    print("No data to visualize.")
+        print("No data to visualize.")
+    '''
 
+    # Build a flat, time-ordered sample array from long_df
+    ordered     = long_df.sort_values(["segment", "time_sample"], kind="mergesort")
+    samples_all = ordered["waveform_value"].astype(np.float32).to_numpy()
 
-# Build a flat, time-ordered sample array from long_df
-ordered     = long_df.sort_values(["segment", "time_sample"], kind="mergesort")
-samples_all = ordered["waveform_value"].astype(np.float32).to_numpy()
+    # drop NaNs (replace with 0.0)
+    if np.isnan(samples_all).any():
+        print("[WARN] NaNs in waveform_value; filling with 0.0")
+        samples_all = np.nan_to_num(samples_all, nan=0.0)
 
-# drop NaNs (replace with 0.0)
-if np.isnan(samples_all).any():
-    print("[WARN] NaNs in waveform_value; filling with 0.0")
-    samples_all = np.nan_to_num(samples_all, nan=0.0)
-
-
+    return samples_all
 
 def main():
     ap = argparse.ArgumentParser()
@@ -181,6 +179,7 @@ def main():
     #profile = demo_profile_segments() if args.demo_profile else [(float("inf"), float(np.clip(args.fixed_hf, 0.0, 1.0)))]
     #mode = "demo" if args.demo_profile else "fixed"
 
+    samples_all = get_past_data(100)
     # Real-time pacing
     chunk_period = args.chunk / args.fs  # seconds per chunk
     next_send = time.perf_counter() + chunk_period
@@ -219,7 +218,6 @@ def main():
             )
             start_sample += args.chunk
             '''
-
 
             # Send
             try:

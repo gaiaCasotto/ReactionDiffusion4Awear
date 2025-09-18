@@ -10,3 +10,5 @@ imgui.ini
 *.serviceAccountKey.json
 # or the exact filename:
 awear-test-firebase-adminsdk-zj0ib-1d57826723.json
+#ignore the logs
+*.log
