@@ -1,3 +1,7 @@
+#TO RUN:
+# python client_eeg_live.py  --host 127.0.0.1 --port 5000 --fs 256
+
+
 import argparse
 import time
 import sys

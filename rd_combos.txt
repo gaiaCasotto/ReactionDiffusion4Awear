@@ -25,4 +25,9 @@ equilibrium --> Da = 1.312
 
 Da < 0.8 equilibrium-ish but not in longer time spans
 
+"unstable waves"
+k = 0.054
+f = 0.029
+Da = 0.821
+Db = 0.500
 

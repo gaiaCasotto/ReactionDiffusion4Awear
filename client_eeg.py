@@ -1,3 +1,6 @@
+#TO RUN:
+# python client_eeg.py  --host 127.0.0.1 --port 5000 --fs 256
+
 #!/usr/bin/env python3
 """
 Stream simulated EEG samples to your Flask server in real time.
