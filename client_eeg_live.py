@@ -1,7 +1,6 @@
 #TO RUN:
 # python client_eeg_live.py  --host 127.0.0.1 --port 5000 --fs 256
 
-
 import argparse
 import time
 import sys
@@ -24,6 +23,8 @@ print("path: ", sys.path)
 #to make it find awear_neuroscience folder
 from awear_neuroscience.data_extraction.firestore_loader import query_eeg_data, process_eeg_records
 
+from data_recorder import DataRecorder   ### NEW
+
 cred = credentials.Certificate(os.getenv("GOOGLE_APPLICATION_CREDENTIALS"))
 firebase_admin.initialize_app(cred)
 firestore_client = firestore.Client()
@@ -43,16 +44,28 @@ print("available emails ", available_emails)
 email = available_emails[0]
 print("only email: ", email)
 
+
+GLOBAL_URL = ""
+recorder     = None    ### NEW global handle
+
+
 #------------ NEW: for live data collection ---------------
 def on_snapshot(col_snap, changes, read_time):
     print("XXXX CALLBACK")
     raw_record: List[Dict[str, Any]] = []
+
     for change in changes:
-        print("XXXXXXXX CHANGE : \n", change)
-        print("CHANGE TYPE NAME: ", change.type.name)
+        #print("CHANGE TYPE NAME: ", change.type.name)
+
         if change.type.name in ("ADDED"):
             doc  = change.document
             raw_data = doc.to_dict()
+
+            # 1) SAVE RAW LOCALLY  -------------  ### NEW
+            #    This is where we persist all the fields:
+            #    ['waveform_value','segment','time_UTC','timestamp', ... 'FOCUS_ist_dB']
+            recorder.write_raw_packet(raw_data)
+    
             raw_record.append(raw_data) 
             print(f"[{read_time}] New/updated: {doc.id} -> data: {list(raw_data.keys())}")
             long_df     = process_eeg_records(raw_record, return_long=True)
@@ -94,7 +107,7 @@ def start_live_data_thread(): # only get new data
 
     #threading.Event().wait()
 
-GLOBAL_URL = ""
+
 
 def main():
     ap = argparse.ArgumentParser()
@@ -104,12 +117,18 @@ def main():
     args = ap.parse_args()
 
     global GLOBAL_URL
+    global recorder
     GLOBAL_URL = f"http://{args.host}:{args.port}/ingest"
     print(f"Streaming to {GLOBAL_URL} at fs={args.fs} Hz, (Ctrl-C to stop)")
 
+    recorder = DataRecorder(out_dir="../recordings", flush_every=50)
+
     #------------- START LIVE DATA THREAD ----------------
-    start_live_data_thread()
-    
+    try:
+        start_live_data_thread()
+    finally:
+        # make sure files are flushed if we exit
+        recorder.close()   ### NEW
 
 if __name__ == "__main__":
     main()

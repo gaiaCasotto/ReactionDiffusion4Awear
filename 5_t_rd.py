@@ -280,7 +280,7 @@ def main():
     args = parser.parse_args()
 
     EEG_FS = float(args.fs)  #eeg frame sampling
-    WIN_S  = 4.0   #window size ?
+    WIN_S  = 4.0   #window size 
     feeder = LiveEEGStreamFeeder(fs=EEG_FS, buffer_s=args.buffer_s)
     clf    = LiveArousalClassifier(fs=EEG_FS, lf=(4, 12), hf=(13, 40), win_s=WIN_S)
 
@@ -306,7 +306,7 @@ def main():
 
     # Live control flags
     current_track = 0
-    outer_steps = 0
+    outer_steps   = 0
     last_time = time.perf_counter()
     f_target[None], k_target[None], Da_target[None], Db_target[None] = f[None], k[None], Da[None], Db[None]
 
