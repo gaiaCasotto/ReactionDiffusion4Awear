@@ -1,4 +1,4 @@
-
+#obsolete
 """
 rd_live_matplotlib.py — Real-time Gray–Scott Reaction–Diffusion (NumPy + Matplotlib)
 Controls:

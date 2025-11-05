@@ -1,3 +1,6 @@
+#obsolete
+
+
 #!/usr/bin/env python3
 # Gray–Scott Reaction–Diffusion
 import numpy as np

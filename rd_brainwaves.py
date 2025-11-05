@@ -1,3 +1,6 @@
+#OLD - NOT WORKING ANYMORE
+
+
 """
 rd_live_matplotlib_eeg.py
 -------------------------

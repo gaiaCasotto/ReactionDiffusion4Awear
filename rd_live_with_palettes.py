@@ -1,3 +1,5 @@
+#obsolete
+
 #!/usr/bin/env python3
 """
 rd_live_matplotlib_palettes.py — Real-time Gray–Scott with changeable color schemes
